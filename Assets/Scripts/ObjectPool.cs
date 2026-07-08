@@ -9,6 +9,7 @@ public class ObjectPool : MonoBehaviour
         public GameObject prefab;
         public int initialSize = 20;
         public Transform parent;
+        public float heightOffset = 0f; // Her prefab için özel yükseklik ayarý
     }
 
     public PoolItem[] poolItems;
@@ -16,10 +17,9 @@ public class ObjectPool : MonoBehaviour
     private Dictionary<GameObject, Transform> parentMap = new Dictionary<GameObject, Transform>();
     private Dictionary<GameObject, Queue<GameObject>> poolDictionary;
     private Dictionary<GameObject, GameObject> prefabMap;
+    private Dictionary<GameObject, float> prefabHeightMap; // Prefab'lerin yüksekliklerini tutacak
     private bool initialized = false;
 
-    // Awake artýk hiçbir þey yapmýyor - AddComponent sýrasýndaki
-    // erken/boþ çalýþma sorununu önlemek için kurulum Init()'e taþýndý.
     void Awake() { }
 
     public void Init()
@@ -29,36 +29,38 @@ public class ObjectPool : MonoBehaviour
 
         poolDictionary = new Dictionary<GameObject, Queue<GameObject>>();
         prefabMap = new Dictionary<GameObject, GameObject>();
+        prefabHeightMap = new Dictionary<GameObject, float>();
 
         if (poolItems == null) return;
 
         foreach (var item in poolItems)
         {
-            if (item == null || item.prefab == null) continue; // boþ slotlarý atla
+            if (item == null || item.prefab == null) continue;
 
             Queue<GameObject> queue = new Queue<GameObject>();
             for (int i = 0; i < item.initialSize; i++)
             {
                 GameObject obj = Instantiate(item.prefab, item.parent);
 
-                // Y konumunu heightOffset ile ayarla
-                Vector3 pos = obj.transform.localPosition;
-                obj.transform.localPosition = pos;
+                // Sýfýrlama
+                obj.transform.localPosition = Vector3.zero;
 
                 obj.SetActive(false);
                 queue.Enqueue(obj);
                 prefabMap[obj] = item.prefab;
             }
+
             if (!poolDictionary.ContainsKey(item.prefab))
             {
                 poolDictionary.Add(item.prefab, queue);
+                prefabHeightMap.Add(item.prefab, item.heightOffset); // Offset'i kaydet
             }
         }
     }
 
     public GameObject Get(GameObject prefab, Vector3 position, Quaternion rotation)
     {
-        if (!initialized) Init(); // güvenlik aðý
+        if (!initialized) Init();
 
         if (prefab == null || !poolDictionary.ContainsKey(prefab))
         {
@@ -72,17 +74,37 @@ public class ObjectPool : MonoBehaviour
         {
             Transform parent = parentMap.ContainsKey(prefab) ? parentMap[prefab] : null;
             GameObject newObj = Instantiate(prefab, parent);
-                    
+
             newObj.SetActive(false);
             queue.Enqueue(newObj);
             prefabMap[newObj] = prefab;
         }
 
         GameObject objToSpawn = queue.Dequeue();
+
+        // Her objenin kendi heightOffset deðerini y eksenine ekle
+        if (prefabHeightMap != null && prefabHeightMap.ContainsKey(prefab))
+        {
+            position.y += prefabHeightMap[prefab];
+        }
+
         objToSpawn.transform.position = position;
         objToSpawn.transform.rotation = rotation;
         objToSpawn.SetActive(true);
         return objToSpawn;
+    }
+
+    // Havuzdaki tanýmlý prefablerden rastgele birini seçip döndürür
+    public GameObject GetRandom(Vector3 position, Quaternion rotation)
+    {
+        if (poolItems == null || poolItems.Length == 0) return null;
+
+        // Rastgele bir PoolItem seç
+        int randomIndex = Random.Range(0, poolItems.Length);
+        GameObject selectedPrefab = poolItems[randomIndex].prefab;
+
+        // Mevcut Get metodunu kullanarak objeyi çaðýr
+        return Get(selectedPrefab, position, rotation);
     }
 
     public void Return(GameObject obj)

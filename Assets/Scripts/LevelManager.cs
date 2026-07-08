@@ -4,31 +4,26 @@ using System.Collections.Generic;
 public class LevelManager : MonoBehaviour
 {
     [Header("Track Settings")]
-    [SerializeField] private GameObject trackPrefab;
     [SerializeField] private float trackLength = 10f;
     [SerializeField] private int initialTrackCount = 5;
     [SerializeField] private Transform playerTransform;
-    [SerializeField] private int blocksAheadBuffer = 3;   // <-- yeni: kaç blok önde dursun
-    [SerializeField] private int blocksBehindBuffer = 2;   // <-- yeni: kaç blok arkada tutulsun
+    [SerializeField] private int blocksAheadBuffer = 3;
+    [SerializeField] private int blocksBehindBuffer = 2;
 
     private float spawnAheadDistance;
     private float despawnBehindDistance;
 
-    // Yeni ayarlar: blok yüksekliði ve lane aralýðý / lane sayýsý
     [SerializeField] private float trackHeightOffset = 1f;
     [SerializeField] private float laneSpacing = 2.5f;
-
-    [Header("Obstacle & Collectible")]
-    [SerializeField] private GameObject[] obstaclePrefabs;
-    [SerializeField] private GameObject[] collectiblePrefabs;
     [SerializeField] private float spawnProbability = 0.3f;
 
-    private ObjectPool trackPool;
-    private ObjectPool obstaclePool;
-    private ObjectPool collectiblePool;
+    [Header("Pool References")]
+    // Artýk doðrudan havuz sistemlerini referans alýyoruz
+    [SerializeField] private ObjectPool trackPool;
+    [SerializeField] private ObjectPool obstaclePool;
+    [SerializeField] private ObjectPool collectiblePool;
+
     private int laneCount = 3;
-
-
     private float lastSpawnZ;
     private List<GameObject> activeTracks = new List<GameObject>();
 
@@ -37,45 +32,14 @@ public class LevelManager : MonoBehaviour
         spawnAheadDistance = trackLength * blocksAheadBuffer;
         despawnBehindDistance = trackLength * blocksBehindBuffer;
 
-        // Track havuzu
-        trackPool = gameObject.AddComponent<ObjectPool>();
-        trackPool.poolItems = new ObjectPool.PoolItem[]
-        {
-            new ObjectPool.PoolItem { prefab = trackPrefab, initialSize = 10, parent = this.transform }
-        };
-        trackPool.Init(); // <-- artýk poolItems atandýktan SONRA kuruluyor
+        // Havuzlarýn Init metotlarýný çaðýrarak hazýr olduklarýndan emin oluyoruz
+        if (trackPool != null) trackPool.Init();
+        if (obstaclePool != null) obstaclePool.Init();
+        if (collectiblePool != null) collectiblePool.Init();
 
-        // Engel havuzu (eðer prefab varsa)
-        if (obstaclePrefabs != null && obstaclePrefabs.Length > 0)
-        {
-            var obstacleItems = new List<ObjectPool.PoolItem>();
-            foreach (var prefab in obstaclePrefabs)
-            {
-                if (prefab != null)
-                    obstacleItems.Add(new ObjectPool.PoolItem { prefab = prefab, initialSize = 5, parent = this.transform});
-            }
-            obstaclePool = gameObject.AddComponent<ObjectPool>();
-            obstaclePool.poolItems = obstacleItems.ToArray();
-            obstaclePool.Init();
-        }
-
-        // Collectible havuzu (eðer prefab varsa)
-        if (collectiblePrefabs != null && collectiblePrefabs.Length > 0)
-        {
-            var collectibleItems = new List<ObjectPool.PoolItem>();
-            foreach (var prefab in collectiblePrefabs)
-            {
-                if (prefab != null)
-                    collectibleItems.Add(new ObjectPool.PoolItem { prefab = prefab, initialSize = 5, parent = this.transform});
-            }
-            collectiblePool = gameObject.AddComponent<ObjectPool>();
-            collectiblePool.poolItems = collectibleItems.ToArray();
-            collectiblePool.Init();
-        }
-
-        // Baþlangýç bloklarý
         for (int i = 0; i < initialTrackCount; i++)
             SpawnTrackBlock(i * trackLength);
+
         lastSpawnZ = initialTrackCount * trackLength;
     }
 
@@ -116,9 +80,12 @@ public class LevelManager : MonoBehaviour
 
     private void SpawnTrackBlock(float zPos)
     {
-        // Yükseklik offset'i uygulanýyor
         Vector3 pos = new Vector3(0, trackHeightOffset, zPos);
+
+        // Track pool'dan ilk sýradaki prefab'i alýyoruz
+        GameObject trackPrefab = trackPool.poolItems[0].prefab;
         GameObject block = trackPool.Get(trackPrefab, pos, Quaternion.identity);
+
         activeTracks.Add(block);
         PopulateTrackBlock(block);
     }
@@ -126,7 +93,6 @@ public class LevelManager : MonoBehaviour
     private void PopulateTrackBlock(GameObject block)
     {
         int objectCount = Random.Range(1, 4);
-        // center hesaplama: laneCount esnekliði için
         float center = (laneCount - 1) / 2f;
 
         for (int i = 0; i < objectCount; i++)
@@ -135,54 +101,32 @@ public class LevelManager : MonoBehaviour
             float laneX = (lane - center) * laneSpacing;
             float zOffset = Random.Range(1f, trackLength - 1f);
 
-            // Objelerin bloðun ne kadar üzerinde olacaðýný belirliyoruz (örneðin 1 birim)
-            float desiredHeightAboveBlock = 2.0f;
+            float baseY = block.transform.position.y;
+            Vector3 spawnPos = new Vector3(laneX, baseY, block.transform.position.z + zOffset);
 
-            // Doðrudan TrackBlock'un Y pozisyonunu referans alarak yüksekliði ayarlýyoruz
-            float itemY = block.transform.position.y + desiredHeightAboveBlock;
-            Vector3 spawnPos = new Vector3(laneX, itemY, block.transform.position.z + zOffset);
-
-            // Engel mi collectible mi?
             if (Random.value < spawnProbability)
             {
-                if (obstaclePrefabs != null && obstaclePrefabs.Length > 0 && obstaclePool != null)
+                if (obstaclePool != null)
                 {
-                    // Null olmayan bir prefab seç
-                    List<GameObject> validPrefabs = new List<GameObject>();
-                    foreach (var prefab in obstaclePrefabs)
+                    // Yeni eklediðimiz GetRandom metodunu kullanýyoruz
+                    GameObject obj = obstaclePool.GetRandom(spawnPos, Quaternion.identity);
+                    if (obj != null)
                     {
-                        if (prefab != null) validPrefabs.Add(prefab);
-                    }
-                    if (validPrefabs.Count > 0)
-                    {
-                        GameObject prefab = validPrefabs[Random.Range(0, validPrefabs.Count)];
-                        GameObject obj = obstaclePool.Get(prefab, spawnPos, Quaternion.identity);
-                        if (obj != null)
-                        {
-                            obj.transform.SetParent(block.transform);
-                            obj.SetActive(true);
-                        }
+                        obj.transform.SetParent(block.transform);
+                        obj.SetActive(true);
                     }
                 }
             }
             else
             {
-                if (collectiblePrefabs != null && collectiblePrefabs.Length > 0 && collectiblePool != null)
+                if (collectiblePool != null)
                 {
-                    List<GameObject> validPrefabs = new List<GameObject>();
-                    foreach (var prefab in collectiblePrefabs)
+                    // Yeni eklediðimiz GetRandom metodunu kullanýyoruz
+                    GameObject obj = collectiblePool.GetRandom(spawnPos, Quaternion.identity);
+                    if (obj != null)
                     {
-                        if (prefab != null) validPrefabs.Add(prefab);
-                    }
-                    if (validPrefabs.Count > 0)
-                    {
-                        GameObject prefab = validPrefabs[Random.Range(0, validPrefabs.Count)];
-                        GameObject obj = collectiblePool.Get(prefab, spawnPos, Quaternion.identity);
-                        if (obj != null)
-                        {
-                            obj.transform.SetParent(block.transform);
-                            obj.SetActive(true);
-                        }
+                        obj.transform.SetParent(block.transform);
+                        obj.SetActive(true);
                     }
                 }
             }
