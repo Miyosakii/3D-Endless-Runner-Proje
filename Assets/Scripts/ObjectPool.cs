@@ -40,12 +40,19 @@ public class ObjectPool : MonoBehaviour
             for (int i = 0; i < item.initialSize; i++)
             {
                 GameObject obj = Instantiate(item.prefab, item.parent);
+
+                // Y konumunu heightOffset ile ayarla
+                Vector3 pos = obj.transform.localPosition;
+                obj.transform.localPosition = pos;
+
                 obj.SetActive(false);
                 queue.Enqueue(obj);
                 prefabMap[obj] = item.prefab;
             }
             if (!poolDictionary.ContainsKey(item.prefab))
+            {
                 poolDictionary.Add(item.prefab, queue);
+            }
         }
     }
 
@@ -65,6 +72,7 @@ public class ObjectPool : MonoBehaviour
         {
             Transform parent = parentMap.ContainsKey(prefab) ? parentMap[prefab] : null;
             GameObject newObj = Instantiate(prefab, parent);
+                    
             newObj.SetActive(false);
             queue.Enqueue(newObj);
             prefabMap[newObj] = prefab;

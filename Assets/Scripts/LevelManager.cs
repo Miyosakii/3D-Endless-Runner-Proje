@@ -52,7 +52,7 @@ public class LevelManager : MonoBehaviour
             foreach (var prefab in obstaclePrefabs)
             {
                 if (prefab != null)
-                    obstacleItems.Add(new ObjectPool.PoolItem { prefab = prefab, initialSize = 5, parent = this.transform });
+                    obstacleItems.Add(new ObjectPool.PoolItem { prefab = prefab, initialSize = 5, parent = this.transform});
             }
             obstaclePool = gameObject.AddComponent<ObjectPool>();
             obstaclePool.poolItems = obstacleItems.ToArray();
@@ -66,7 +66,7 @@ public class LevelManager : MonoBehaviour
             foreach (var prefab in collectiblePrefabs)
             {
                 if (prefab != null)
-                    collectibleItems.Add(new ObjectPool.PoolItem { prefab = prefab, initialSize = 5, parent = this.transform });
+                    collectibleItems.Add(new ObjectPool.PoolItem { prefab = prefab, initialSize = 5, parent = this.transform});
             }
             collectiblePool = gameObject.AddComponent<ObjectPool>();
             collectiblePool.poolItems = collectibleItems.ToArray();
@@ -135,8 +135,11 @@ public class LevelManager : MonoBehaviour
             float laneX = (lane - center) * laneSpacing;
             float zOffset = Random.Range(1f, trackLength - 1f);
 
-            // Objelerin yerleþtirileceði yükseklik: önceki 0.5f + track yüksekliði
-            float itemY = 0.5f + trackHeightOffset;
+            // Objelerin bloðun ne kadar üzerinde olacaðýný belirliyoruz (örneðin 1 birim)
+            float desiredHeightAboveBlock = 2.0f;
+
+            // Doðrudan TrackBlock'un Y pozisyonunu referans alarak yüksekliði ayarlýyoruz
+            float itemY = block.transform.position.y + desiredHeightAboveBlock;
             Vector3 spawnPos = new Vector3(laneX, itemY, block.transform.position.z + zOffset);
 
             // Engel mi collectible mi?

@@ -2166,7 +2166,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ObjectPool
   poolItems:
-  - prefab: {fileID: 4063131164515866454, guid: b37627821bbd1b04baed49008edcd9bb, type: 3}
+  - prefab: {fileID: 3029559393684027538, guid: b37627821bbd1b04baed49008edcd9bb, type: 3}
     initialSize: 0
     parent: {fileID: 2110686692}
   - prefab: {fileID: 891208600531620736, guid: 544d3855c7cb82f45b3827c2239785fa, type: 3}
@@ -2187,7 +2187,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 26a07323a11f0cc48a7a5b6541f01a3b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LevelManager
-  trackPrefab: {fileID: 4063131164515866454, guid: b37627821bbd1b04baed49008edcd9bb, type: 3}
+  trackPrefab: {fileID: 3029559393684027538, guid: b37627821bbd1b04baed49008edcd9bb, type: 3}
   trackLength: 50
   initialTrackCount: 6
   playerTransform: {fileID: 2110686692}
@@ -2366,6 +2366,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2265999768934121774, guid: 81bf2c8781637754da01867107c05943, type: 3}
+      propertyPath: jumpForce
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 2265999768934121774, guid: 81bf2c8781637754da01867107c05943, type: 3}
       propertyPath: laneWidth
       value: 4
       objectReference: {fileID: 0}
@@ -2375,7 +2379,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2265999768934121774, guid: 81bf2c8781637754da01867107c05943, type: 3}
       propertyPath: laneChangeSpeed
-      value: 20
+      value: 35
       objectReference: {fileID: 0}
     - target: {fileID: 2703708009541723185, guid: 81bf2c8781637754da01867107c05943, type: 3}
       propertyPath: m_Constraints
